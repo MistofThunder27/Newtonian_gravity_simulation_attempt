@@ -2,9 +2,10 @@ import math
 import tkinter
 
 # important variables
-delta_time = 1
+delta_time = 10
 scale = 1
-centre_point = [0, 0]
+x_avg = 0
+y_avg = 0
 # Constant
 G = 6.67408e-11
 # store the global state as a dictionary. Each entry in this dictionary is as follows:
@@ -31,10 +32,11 @@ def update_state():
             print(f"main object: {object1_name}")
             object1_properties = last_frame_state[object1_name]
             print("properties", object1_properties)
+            obj1_mass, obj1_x_pos, obj1_y_pos, obj1_x_vel, obj1_y_vel = object1_properties
             # Calculate new position = old position + old velocity * delta time
-            new_x_pos = object1_properties[1] + object1_properties[3] * delta_time
+            new_x_pos = obj1_x_pos + obj1_x_vel * delta_time
             print("new_x_pos", new_x_pos)
-            new_y_pos = object1_properties[2] + object1_properties[4] * delta_time
+            new_y_pos = obj1_y_pos + obj1_y_vel * delta_time
             print("new_y_pos", new_y_pos)
             x_acc = 0
             y_acc = 0
@@ -44,13 +46,14 @@ def update_state():
                     print(f"reference object: {object2_name}")
                     object2_properties = last_frame_state[object2_name]
                     print("properties", object2_properties)
+                    obj2_x_pos, obj2_y_pos = object2_properties[1], object2_properties[2]
                     # the gravitational force per unit mass formula is Gm/r**2 in the direction of the object
                     # calculate the force by using the formula while taking the object2 as the center
-                    delta_x = object1_properties[1] - object2_properties[1]
+                    delta_x = obj1_x_pos - obj2_x_pos
                     print("delta-x", delta_x)
-                    delta_y = object1_properties[2] - object2_properties[2]
+                    delta_y = obj1_y_pos - obj2_y_pos
                     print("delta_y", delta_y)
-                    acc_value = G * object1_properties[0] / (delta_y**2 + delta_x**2)
+                    acc_value = G * obj1_mass / (delta_y**2 + delta_x**2)
                     print("acc_value", acc_value)
                     # now the angle
                     try:
@@ -67,12 +70,12 @@ def update_state():
                     print("y_acc", y_acc)
 
             # Calculate new velocity = old velocity + acceleration * delta time
-            new_x_vel = object1_properties[3] + x_acc * delta_time
+            new_x_vel = obj1_x_vel + x_acc * delta_time
             print("new_x_vel", new_x_vel)
-            new_y_vel = object1_properties[4] + y_acc * delta_time
+            new_y_vel = obj1_y_vel + y_acc * delta_time
             print("new_y_vel", new_y_vel)
 
-            new_frame_state[object1_name] = [object1_properties[0], new_x_pos, new_y_pos, new_x_vel, new_y_vel]
+            new_frame_state[object1_name] = [obj1_mass, new_x_pos, new_y_pos, new_x_vel, new_y_vel]
 
         print(new_frame_state)
         return new_frame_state
@@ -82,51 +85,57 @@ def update_state():
 
 
 def update_display():
-    global global_state, main_display, centre_point, scale
+    global global_state, main_display, x_avg, y_avg, scale
+    radius = 1
     # Find centre point and scale
-    x_max = 0
-    y_max = 0
-    x_min = 0
-    y_min = 0
     for object_name in global_state:
         object_properties = global_state[object_name]
-        x_max = max(x_max, object_properties[1])
-        x_min = min(x_min, object_properties[1])
-        y_max = max(y_max, object_properties[2])
-        y_min = min(y_min, object_properties[2])
-    print(x_max, x_min, y_max, y_min)
+        obj_x_pos = object_properties[1]
+        obj_y_pos = object_properties[2]
+        try:
+            x_max = max(x_max, obj_x_pos)
+            x_min = min(x_min, obj_x_pos)
+            y_max = max(y_max, obj_y_pos)
+            y_min = min(y_min, obj_y_pos)
+        except UnboundLocalError:
+            x_max = x_min = obj_x_pos
+            y_max = y_min = obj_y_pos
+    print("min-max", x_max, x_min, y_max, y_min)
     x_avg = (x_max + x_min)/len(global_state)
     y_avg = (y_max + y_min)/len(global_state)
     main_display.update()
-    # Height is actually the x direction. Width is y space.
     win_height = main_display.winfo_height()
     win_width = main_display.winfo_width()
     print("win", win_height, win_width)
-    # Y is negative in the following 2 lines because I want +ve y to be up
-    centre_point = [x_avg + win_width/2, -y_avg + win_height/2]
-    scale = min(win_width/(x_max - x_min + 40), win_height/(y_min - y_max + 40))
-    print("centre point", centre_point)
+    # The 2*radius is so than 2 circles at each end would be in frame
+    scale = min(win_width/(x_max - x_min + 2*radius + 10), win_height/(y_max - y_min + 2*radius + 10))
+    print("centre point", x_avg, y_avg)
     print("scale", scale)
 
     # draw the objects
-    radius = 1
-    index = 0
     main_display.delete("all")
+    zero_y_coord = win_height/2 + y_avg * scale  # the negative is because in Tkinter y increases downwards
+    zero_x_coord = win_width/2 - x_avg * scale
+    print("zero coords", zero_x_coord, zero_y_coord)
+    main_display.create_line(0, zero_y_coord, win_width, zero_y_coord)  # x-axis
+    main_display.create_line(zero_x_coord, 0, zero_x_coord, win_height)  # y-axis
     for object_name in global_state:
         object_properties = global_state[object_name]
-        x0 = (object_properties[1]-radius)*scale+centre_point[0]
-        x1 = (object_properties[1]+radius)*scale+centre_point[0]
-        y0 = (object_properties[2]-radius)*scale+centre_point[1]
-        y1 = (object_properties[2]+radius)*scale+centre_point[1]
+        obj_x_rel_pos = object_properties[1] - x_avg
+        obj_y_rel_pos = object_properties[2] - y_avg
+        print("rel pos", obj_x_rel_pos, obj_y_rel_pos)
+        x0 = (obj_x_rel_pos - radius)*scale + win_width/2  # left-most point
+        x1 = (obj_x_rel_pos + radius)*scale + win_width/2  # right-most point
+        y0 = win_height/2 - (obj_y_rel_pos - radius)*scale  # bottom-most point (least negative y as tkinter increases y downwards)
+        y1 = win_height/2 - (obj_y_rel_pos + radius)*scale  # top-most point (most negative y as tkinter decreases y downwards)
         print(x0, x1, y0, y1)
-        main_display.create_line(centre_point[0]-100*scale, centre_point[1], centre_point[0]+100*scale, centre_point[1])
-        main_display.create_line(centre_point[0], centre_point[1]-100*scale, centre_point[0], centre_point[1]+100*scale)
         main_display.create_oval(x0, y0, x1, y1, fill="red")
-        index += 1
+
 
 def main_update():
     update_state()
     update_display()
+
 
 main_window = tkinter.Tk()
 main_window.geometry("1000x600+100+100")
