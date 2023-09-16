@@ -2,7 +2,7 @@ import math
 import tkinter
 
 # important variables
-delta_time = 10
+delta_time = 5
 scale = 1
 x_avg = 0
 y_avg = 0
@@ -19,7 +19,7 @@ location_history = {}
 test_start_state = {
     "obj1": [1e10, 10, 0, 0, 0],
     "obj2": [1e10, -10, 0, 0, 0],
-    # "obj3": [1e10, 0, 10, 0, -0.0125],
+    "obj3": [1e10, 0, 10, 0, -0.0125],
 }
 global_state = test_start_state
 
@@ -27,6 +27,7 @@ global_state = test_start_state
 def update_state():
     # The following function takes the current frame information state and calculates the next
     def calculate_next_frame(last_frame_state):
+        print("CALC NEW FRAME ---------------------------------------")
         new_frame_state = {}
         for object1_name in last_frame_state:
             print(f"main object: {object1_name}")
@@ -38,9 +39,16 @@ def update_state():
             print("new_x_pos", new_x_pos)
             new_y_pos = obj1_y_pos + obj1_y_vel * delta_time
             print("new_y_pos", new_y_pos)
+            # store the position history
+            obj_pos_his = location_history.setdefault(object1_name, [])
+            if len(obj_pos_his) > 9:
+                obj_pos_his.pop(0)
+            obj_pos_his.append([new_x_pos, new_y_pos])
+            print("loc his", location_history)
+
+            # Calculate acceleration
             x_acc = 0
             y_acc = 0
-            # Calculate acceleration
             for object2_name in last_frame_state:
                 if object1_name != object2_name:
                     print(f"reference object: {object2_name}")
@@ -85,6 +93,7 @@ def update_state():
 
 
 def update_display():
+    print("UPDATE DISPLAY ---------------------------------------------------")
     global global_state, main_display, x_avg, y_avg, scale
     radius = 1
     # Find centre point and scale
@@ -112,13 +121,26 @@ def update_display():
     print("centre point", x_avg, y_avg)
     print("scale", scale)
 
-    # draw the objects
+    # draw to canvas
     main_display.delete("all")
+    # Find the zero line axes
     zero_y_coord = win_height/2 + y_avg * scale  # the negative is because in Tkinter y increases downwards
     zero_x_coord = win_width/2 - x_avg * scale
     print("zero coords", zero_x_coord, zero_y_coord)
+    # Draw them
     main_display.create_line(0, zero_y_coord, win_width, zero_y_coord)  # x-axis
     main_display.create_line(zero_x_coord, 0, zero_x_coord, win_height)  # y-axis
+    # Find path from location history
+    for object_history in location_history.values():
+        print("obj his", object_history)
+        for i in range(len(object_history) - 1):
+            x0 = (object_history[i][0] - x_avg) * scale + win_width / 2
+            y0 = win_height / 2 - (object_history[i][1] - y_avg) * scale
+            x1 = (object_history[i+1][0] - x_avg) * scale + win_width / 2
+            y1 = win_height / 2 - (object_history[i+1][1] - y_avg) * scale
+            print("line coord", x0, y0, x1, y1)
+            main_display.create_line(x0, y0, x1, y1, fill="red")
+    # Draw objects
     for object_name in global_state:
         object_properties = global_state[object_name]
         obj_x_rel_pos = object_properties[1] - x_avg
