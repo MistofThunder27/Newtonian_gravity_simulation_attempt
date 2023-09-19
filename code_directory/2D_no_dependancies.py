@@ -145,12 +145,12 @@ def update_display():
     # draw to canvas
     main_display.delete("all")
     # Find the zero line axes
-    zero_y_coord = win_height / 2 + y_avg * scale  # the positive y_avg is because in Tkinter y increases downwards
-    zero_x_coord = win_width / 2 - x_avg * scale
-    print("zero coords", zero_x_coord, zero_y_coord)
+    zero_y_coordinate = win_height / 2 + y_avg * scale  # the positive y_avg is because in Tkinter y increases downwards
+    zero_x_coordinate = win_width / 2 - x_avg * scale
+    print("zero coordinates", zero_x_coordinate, zero_y_coordinate)
     # Draw them
-    main_display.create_line(0, zero_y_coord, win_width, zero_y_coord)  # x-axis
-    main_display.create_line(zero_x_coord, 0, zero_x_coord, win_height)  # y-axis
+    main_display.create_line(0, zero_y_coordinate, win_width, zero_y_coordinate)  # x-axis
+    main_display.create_line(zero_x_coordinate, 0, zero_x_coordinate, win_height)  # y-axis
     # Draw objects and their paths
     for object_name in global_state:
         # Draw objects
@@ -165,7 +165,7 @@ def update_display():
         x1 = (obj_x_rel_pos + radius) * scale + win_width / 2  # right-most point
         y0 = win_height / 2 - (obj_y_rel_pos + radius) * scale  # bottom-most point
         y1 = win_height / 2 - (obj_y_rel_pos - radius) * scale  # top-most point
-        print("circle coord x0, x1 then y0, y1", x0, x1, y0, y1)
+        print("circle coordinate x0, x1 then y0, y1", x0, x1, y0, y1)
         main_display.create_oval(x0, y0, x1, y1, fill=object_colour)
 
         # Draw path from location history
@@ -173,11 +173,11 @@ def update_display():
         print("obj his", object_history)
         x0 = (object_history[0][0] - x_avg) * scale + win_width / 2
         y0 = win_height / 2 - (object_history[0][1] - y_avg) * scale
-        print("starting coord in line", x0, y0)
+        print("starting coordinate in line", x0, y0)
         for i in range(1, len(object_history)):
             x1 = (object_history[i][0] - x_avg) * scale + win_width / 2
             y1 = win_height / 2 - (object_history[i][1] - y_avg) * scale
-            print("next coord in line", x1, y1)
+            print("next coordinate in line", x1, y1)
             main_display.create_line(x0, y0, x1, y1, fill=object_colour)
             x0, y0 = x1, y1
 
@@ -198,17 +198,18 @@ def toggle_settings():
     update_display()
     print("settings_toggle", settings_toggle)
 
-# test settings:
-# absolute_scale = True
-# centre_mode = "zero"
+
+def reset_location_history():
+    print("current global state", global_state)
+    for object_name in global_state:
+        print("resetting locations history for", object_name)
+        location_history[object_name] = [global_state[object_name][1][:2].copy()]
+    print("reset loc his", location_history)
+
 
 # PROGRAM START
-# first add the starting positions to object history
-print("starting global state", global_state)
-for object_name in global_state:
-    print("initialising locations history", object_name)
-    location_history[object_name] = [global_state[object_name][1][:2].copy()]
-print("initial loc his", location_history)
+# first set the starting positions to object history by resetting it
+reset_location_history()
 
 main_window = tkinter.Tk()
 main_window.geometry("1000x600+100+100")
@@ -225,6 +226,10 @@ next_frame_button.pack(side="left", fill="x", expand=True)
 main_display = tkinter.Canvas(main_window)
 main_display.pack(side="left", fill="both", expand=True)
 settings_frame = tkinter.Frame(main_window)
+
+# test settings:
+# absolute_scale = True
+# centre_mode = "zero"
 
 update_display()
 main_window.mainloop()
