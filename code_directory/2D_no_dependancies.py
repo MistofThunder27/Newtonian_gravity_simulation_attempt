@@ -50,11 +50,6 @@ def update_state():
     for object1_name in global_state:
         print(f"main object: {object1_name}")
         obj1_x_pos, obj1_y_pos, obj1_x_vel, obj1_y_vel = global_state[object1_name][1]
-        # Calculate new position = old position + old velocity * delta time
-        new_x_pos = obj1_x_pos + obj1_x_vel * delta_time
-        print("new_x_pos", new_x_pos)
-        new_y_pos = obj1_y_pos + obj1_y_vel * delta_time
-        print("new_y_pos", new_y_pos)
 
         # Calculate acceleration
         x_acc = 0
@@ -85,24 +80,24 @@ def update_state():
                 y_acc += acc_value * math.sin(angle)
                 print("y_acc", y_acc)
 
-        # Calculate new velocity = old velocity + acceleration * delta time
-        new_x_vel = obj1_x_vel + x_acc * delta_time
-        print("new_x_vel", new_x_vel)
-        new_y_vel = obj1_y_vel + y_acc * delta_time
-        print("new_y_vel", new_y_vel)
-
-        new_frame_state[object1_name] = [global_state[object1_name][0], [new_x_pos, new_y_pos, new_x_vel, new_y_vel],
-                                         global_state[object1_name][-2], global_state[object1_name][-1]]
+        new_frame_state[object1_name] = [
+            new_x_pos := obj1_x_pos + obj1_x_vel * delta_time,  # new x position
+            new_y_pos := obj1_y_pos + obj1_y_vel * delta_time,  # new y position
+            obj1_x_vel + x_acc * delta_time,  # new x velocity
+            obj1_y_vel + y_acc * delta_time   # new y velocity
+        ]
+        print(f"new {object1_name} numbers {new_frame_state[object1_name]}")
 
         # store the position history
         obj_pos_his = location_history.setdefault(object1_name, [])
-        while len(obj_pos_his) > history_record_length - 1:
+        while len(obj_pos_his) > history_record_length:
             obj_pos_his.pop(0)
         obj_pos_his.append([new_x_pos, new_y_pos])
         print("loc his", obj_pos_his)
 
     # save as the new global state
-    global_state = new_frame_state
+    for object_name in global_state:
+        global_state[object_name][1] = new_frame_state[object_name]
     print("new global state", global_state)
 
 
