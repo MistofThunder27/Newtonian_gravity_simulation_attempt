@@ -8,7 +8,8 @@ max_object_num = 10
 delta_time = 10000
 history_record_length = 100
 centre_reference = "geometrical"
-absolute_scale = False  # When False recalculate scale, otherwise use the global. The name shadowing is INTENTIONAL
+scale_mode = "fit to zoom"
+scale_multiplayer = 1
 
 # store the global state as a dictionary. Each entry in this dictionary is as follows:
 # global_state = {obj_name: [[obj_mass, [obj_x_pos, obj_y_pos, obj_x_vel, obj_y_vel], "colour", radius]}
@@ -21,7 +22,7 @@ location_history = {}
 test_case_1 = {  # Solar system (recommended delta_time 10000)
     "Sun": [1.989e30, [0, 0, 0, 0], "yellow", 10000000000],
     "Mercury": [3.301e23, [5.8e10, 0, 0, 47000], "brown", 300000000],
-    "Venus": [4.867e24, [1.08e11, 0, 0, 35000], "brown", 300000000],
+    "Venus": [4.867e24, [1.08e11, 0, 0, 35000], "orange", 300000000],
     "Earth": [5.9722e24, [1.5037e11, 0, 0, 29780], "blue", 300000000],
     "Moon": [7.34767e22, [1.507544e11, 0, 0, 30802], "grey", 100000000]
 }
@@ -55,26 +56,26 @@ def update_state():
         x_acc = 0
         y_acc = 0
         for object2_name in global_state:
-            if object1_name != object2_name:
+            if object1_name is not object2_name:
                 print(f"reference object: {object2_name}")
                 obj2_x_pos, obj2_y_pos = global_state[object2_name][1][:2]
                 # the gravitational force per unit mass formula is Gm/r**2 in the direction of the object
-                # calculate the force by using the formula while taking the object2 as the center
-                delta_x = obj1_x_pos - obj2_x_pos
+                # calculate the force by using the formula while taking the object1 as the center
+                delta_x = obj2_x_pos - obj1_x_pos
                 print("delta-x", delta_x)
-                delta_y = obj1_y_pos - obj2_y_pos
+                delta_y = obj2_y_pos - obj1_y_pos
                 print("delta_y", delta_y)
                 acc_value = G * global_state[object2_name][0] / (delta_y ** 2 + delta_x ** 2)
                 print("acc_value", acc_value)
-                # now the angle. As gravity is attractive I will calculate the angle flipped 180 degrees
+                # now the angle towards object2
                 try:
                     angle = math.atan(delta_y / delta_x)
-                    if delta_x > 0:  # to account for the full 360 degrees
+                    if delta_x < 0:  # to account for the full 360 degrees
                         angle += math.pi
                 except ZeroDivisionError:
-                    angle = math.pi / 2 * (1 if delta_y < 0 else -1)
+                    angle = math.pi / 2 * (1 if delta_y > 0 else -1)
                 print("angle", angle)
-                # now the components, the negative sign is because gravity is an attractive force
+                # now the components
                 x_acc += acc_value * math.cos(angle)
                 print("x_acc", x_acc)
                 y_acc += acc_value * math.sin(angle)
@@ -84,7 +85,7 @@ def update_state():
             new_x_pos := obj1_x_pos + obj1_x_vel * delta_time,  # new x position
             new_y_pos := obj1_y_pos + obj1_y_vel * delta_time,  # new y position
             obj1_x_vel + x_acc * delta_time,  # new x velocity
-            obj1_y_vel + y_acc * delta_time   # new y velocity
+            obj1_y_vel + y_acc * delta_time  # new y velocity
         ]
         print(f"new {object1_name} numbers {new_frame_state[object1_name]}")
 
@@ -101,7 +102,7 @@ def update_state():
     print("new global state", global_state)
 
 
-def update_display():
+def update_display(begrudgingly_necessary_for_resizing_update=None):
     print("UPDATE DISPLAY ---------------------------------------------------")  # TODO: EVERYTHING
     global main_display, centre_reference
     main_display.update()
@@ -112,46 +113,33 @@ def update_display():
     if centre_reference in global_state:
         print("centre:", centre_reference)
         centre_x, centre_y = global_state[centre_reference][1][:2]
-        furthest_x = furthest_y = 0
-        furthest_x_name = furthest_y_name = centre_reference
+        furthest_x = furthest_y = global_state[centre_reference][-1]
         for object_name in global_state:
             if object_name is not centre_reference:  # TODO: is this check necessary?
                 obj_x_pos, obj_y_pos = global_state[object_name][1][:2]
-                if math.fabs(obj_x_pos - centre_x) > furthest_x:
-                    furthest_x_name = object_name
-                    furthest_x = math.fabs(obj_x_pos - centre_x)
-                if math.fabs(obj_y_pos - centre_y) > furthest_y:
-                    furthest_y_name = object_name
-                    furthest_y = math.fabs(obj_y_pos - centre_y)
-        print(f"furthest objects: X-{furthest_x_name} at a distance of {furthest_x} and "
-              f"Y-{furthest_y_name} at a distance of {furthest_y}")
+                furthest_x = max(furthest_x, math.fabs(obj_x_pos - centre_x) + global_state[object_name][-1])
+                furthest_y = max(furthest_y, math.fabs(obj_y_pos - centre_y) + global_state[object_name][-1])
 
-        if absolute_scale:
+        if scale_mode == "1 meter = 1 pixel":
             scale = 1
-        else:
+        else:  # scale_mode == "auto"
             # The 2* is so that it covers the same distance on both sides
-            scale = min(win_width / (2 * (furthest_x + global_state[furthest_x_name][-1])),
-                        win_height / (2 * (furthest_y + global_state[furthest_y_name][-1])))
+            scale = min(win_width / 2 / furthest_x, win_height / 2 / furthest_y)
 
     elif centre_reference == "origin":
         print("centre: origin")
         centre_x = centre_y = furthest_x = furthest_y = 0
         for object_name in global_state:
             obj_x_pos, obj_y_pos = global_state[object_name][1][:2]
-            if math.fabs(obj_x_pos) > furthest_x:
-                furthest_x_name = object_name
-                furthest_x = math.fabs(obj_x_pos)
-            if math.fabs(obj_y_pos) > furthest_y:
-                furthest_y_name = object_name
-                furthest_y = math.fabs(obj_y_pos)
+            furthest_x = max(furthest_x, math.fabs(obj_x_pos) + global_state[object_name][-1])
+            furthest_y = max(furthest_y, math.fabs(obj_y_pos) + global_state[object_name][-1])
         print("furthest points at", furthest_x, furthest_y)
 
-        if absolute_scale:
+        if scale_mode == "1 meter = 1 pixel":
             scale = 1
-        else:
+        else:  # scale_mode == "auto"
             # The 2* is so that it covers the same distance on both sides
-            scale = min(win_width / (2 * (furthest_x + global_state.get(furthest_x_name, [0])[-1])),
-                        win_height / (2 * (furthest_y + global_state.get(furthest_y_name, [0])[-1])))
+            scale = min(win_width / 2 / furthest_x, win_height / 2 / furthest_y)
 
     elif centre_reference == "geometrical":
         print("centre: geometrical")
@@ -175,9 +163,9 @@ def update_display():
         centre_x = (x_max + x_min) / 2
         centre_y = (y_max + y_min) / 2
 
-        if absolute_scale:
+        if scale_mode == "1 meter = 1 pixel":
             scale = 1
-        else:
+        else:  # scale_mode == "auto"
             # The 3*radius is so that 2 circles at each end would be in frame and
             # an extra half radius on both sides as padding
             scale = min(win_width / (x_max - x_min + 2 * largest_radius),
@@ -202,20 +190,16 @@ def update_display():
         furthest_x = furthest_y = 0
         for object_name in global_state:
             obj_x_pos, obj_y_pos = global_state[object_name][1][:2]
-            if math.fabs(obj_x_pos - centre_x) > furthest_x:
-                furthest_x_name = object_name
-                furthest_x = math.fabs(obj_x_pos - centre_x)
-            if math.fabs(obj_y_pos - centre_y) > furthest_y:
-                furthest_y_name = object_name
-                furthest_y = math.fabs(obj_y_pos - centre_y)
+            furthest_x = max(furthest_x, math.fabs(obj_x_pos - centre_x) + global_state[object_name][-1])
+            furthest_y = max(furthest_y, math.fabs(obj_y_pos - centre_y) + global_state[object_name][-1])
 
-        if absolute_scale:
+        if scale_mode == "1 meter = 1 pixel":
             scale = 1
-        else:
+        else:  # scale_mode == "auto"
             # The 2* is so that it covers the same distance on both sides
-            scale = min(win_width / (2 * (furthest_x + global_state.get(furthest_x_name, [0])[-1])),
-                        win_height / (2 * (furthest_y + global_state.get(furthest_y_name, [0])[-1])))
+            scale = min(win_width / 2 / furthest_x, win_height / 2 / furthest_y)
 
+    scale *= scale_multiplayer  # to adjust the scale
     print("centre point", centre_x, centre_y)
     print("scale", scale)
 
@@ -227,8 +211,8 @@ def update_display():
     zero_x_coordinate = win_width / 2 - centre_x * scale
     print("zero coordinates", zero_x_coordinate, zero_y_coordinate)
     # Draw them
-    main_display.create_line(0, zero_y_coordinate, win_width, zero_y_coordinate)  # x-axis
-    main_display.create_line(zero_x_coordinate, 0, zero_x_coordinate, win_height)  # y-axis
+    main_display.create_line(0, zero_y_coordinate, win_width, zero_y_coordinate, fill="white")  # x-axis
+    main_display.create_line(zero_x_coordinate, 0, zero_x_coordinate, win_height, fill="white")  # y-axis
     # Draw objects and their paths
     for object_name in global_state:
         # Draw objects
@@ -265,14 +249,57 @@ def main_update():
 
 
 def toggle_settings():
-    global settings_toggle, settings_frame
+    global settings_toggle, settings_frame, centre_reference, scale_mode, scale_multiplayer
     if settings_toggle:
         settings_toggle = False
-        settings_frame.pack_forget()
+        settings_frame.destroy()
     else:
         settings_toggle = True
-        settings_frame.pack(side="right", fill="both", expand=True)
-    update_display()
+        # settings frame set up
+        settings_frame = tkinter.Frame(main_window)
+        settings_frame.pack(side="right", fill="both")
+        tkinter.Label(settings_frame, text="Settings menu").pack()
+
+        frame1 = tkinter.Frame(settings_frame)
+        frame1.pack()
+        tkinter.Label(frame1, text="Centre mode").pack(side="left")
+        centre_list = ["origin", "geometrical", "centre of mass"] + list(global_state)
+        centre_option = tkinter.StringVar()
+        centre_option.set(centre_reference)
+        centre_reference_selector = tkinter.OptionMenu(frame1, centre_option, *centre_list)
+        centre_reference_selector.pack(side="left")
+
+        frame2 = tkinter.Frame(settings_frame)
+        frame2.pack()
+        tkinter.Label(frame2, text="Scale mode").pack(side="left")
+        scale_multiplayer_box = tkinter.Entry(frame2)
+        scale_multiplayer_box.insert("end", str(scale_multiplayer))
+        scale_multiplayer_box.pack(side="left")
+        scale_list = ["1 meter = 1 pixel", "fit to zoom"]
+        scale_option = tkinter.StringVar()
+        scale_option.set(scale_mode)
+        scale_mode_selector = tkinter.OptionMenu(frame2, scale_option, *scale_list)
+        scale_mode_selector.pack(side="left")
+
+        settings_button_frame = tkinter.Frame(settings_frame)
+        settings_button_frame.pack(side="bottom")
+
+        def apply_settings():
+            global centre_reference, scale_mode, scale_multiplayer
+            nonlocal centre_option, scale_multiplayer_box, scale_option
+            centre_reference = centre_option.get()
+            try:
+                scale_multiplayer = float(scale_multiplayer_box.get())
+            except TypeError:
+                pass
+            scale_mode = scale_option.get()
+            update_display()
+
+        apply_button = tkinter.Button(settings_button_frame, text="Apply settings", command=apply_settings)
+        apply_button.pack(side="left")
+        objects_button = tkinter.Button(settings_button_frame, text="Objects' properties", command=apply_settings)
+        objects_button.pack(side="left")
+
     print("settings_toggle", settings_toggle)
 
 
@@ -300,8 +327,9 @@ settings_button.pack(side="right", fill="x")
 next_frame_button = tkinter.Button(button_frame, text="Next frame", command=main_update)
 next_frame_button.pack(side="left", fill="x", expand=True)
 
-main_display = tkinter.Canvas(main_window)
+main_display = tkinter.Canvas(main_window, bg="black")
 main_display.pack(side="left", fill="both", expand=True)
+main_display.bind("<Configure>", update_display)  # update display at every resize
 settings_frame = tkinter.Frame(main_window)
 
 # test settings:
