@@ -120,7 +120,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
                 furthest_x = max(furthest_x, math.fabs(obj_x_pos - centre_x) + global_state[object_name][-1])
                 furthest_y = max(furthest_y, math.fabs(obj_y_pos - centre_y) + global_state[object_name][-1])
 
-        if scale_mode == "1 meter = 1 pixel":
+        if scale_mode == "1 pixel = 1 meter":
             scale = 1
         else:  # scale_mode == "auto"
             # The 2* is so that it covers the same distance on both sides
@@ -135,7 +135,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             furthest_y = max(furthest_y, math.fabs(obj_y_pos) + global_state[object_name][-1])
         print("furthest points at", furthest_x, furthest_y)
 
-        if scale_mode == "1 meter = 1 pixel":
+        if scale_mode == "1 pixel = 1 meter":
             scale = 1
         else:  # scale_mode == "auto"
             # The 2* is so that it covers the same distance on both sides
@@ -163,7 +163,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
         centre_x = (x_max + x_min) / 2
         centre_y = (y_max + y_min) / 2
 
-        if scale_mode == "1 meter = 1 pixel":
+        if scale_mode == "1 pixel = 1 meter":
             scale = 1
         else:  # scale_mode == "auto"
             # The 3*radius is so that 2 circles at each end would be in frame and
@@ -193,7 +193,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             furthest_x = max(furthest_x, math.fabs(obj_x_pos - centre_x) + global_state[object_name][-1])
             furthest_y = max(furthest_y, math.fabs(obj_y_pos - centre_y) + global_state[object_name][-1])
 
-        if scale_mode == "1 meter = 1 pixel":
+        if scale_mode == "1 pixel = 1 meter":
             scale = 1
         else:  # scale_mode == "auto"
             # The 2* is so that it covers the same distance on both sides
@@ -249,7 +249,8 @@ def main_update():
 
 
 def toggle_settings():
-    global settings_toggle, settings_frame, centre_reference, scale_mode, scale_multiplayer
+    global settings_toggle, settings_frame, centre_reference, scale_mode, scale_multiplayer, history_record_length
+    global delta_time
     if settings_toggle:
         settings_toggle = False
         settings_frame.destroy()
@@ -260,8 +261,10 @@ def toggle_settings():
         settings_frame.pack(side="right", fill="both")
         tkinter.Label(settings_frame, text="Settings menu").pack()
 
+        tkinter.Label(settings_frame, text="///Display settings:").pack(anchor="w")
+
         frame1 = tkinter.Frame(settings_frame)
-        frame1.pack()
+        frame1.pack(anchor="w")
         tkinter.Label(frame1, text="Centre mode").pack(side="left")
         centre_list = ["origin", "geometrical", "centre of mass"] + list(global_state)
         centre_option = tkinter.StringVar()
@@ -270,35 +273,63 @@ def toggle_settings():
         centre_reference_selector.pack(side="left")
 
         frame2 = tkinter.Frame(settings_frame)
-        frame2.pack()
+        frame2.pack(anchor="w")
         tkinter.Label(frame2, text="Scale mode").pack(side="left")
         scale_multiplayer_box = tkinter.Entry(frame2)
         scale_multiplayer_box.insert("end", str(scale_multiplayer))
         scale_multiplayer_box.pack(side="left")
-        scale_list = ["1 meter = 1 pixel", "fit to zoom"]
+        tkinter.Label(frame2, text="x").pack(side="left")
+        scale_list = ["1 pixel = 1 meter", "fit to zoom"]
         scale_option = tkinter.StringVar()
         scale_option.set(scale_mode)
         scale_mode_selector = tkinter.OptionMenu(frame2, scale_option, *scale_list)
         scale_mode_selector.pack(side="left")
 
+        frame3 = tkinter.Frame(settings_frame)
+        frame3.pack(anchor="w")
+        tkinter.Label(frame3, text="Path length").pack(side="left")
+        path_length_box = tkinter.Entry(frame3)
+        path_length_box.insert("end", str(history_record_length))
+        path_length_box.pack(side="left")
+
+        tkinter.Label(settings_frame, text="///Simulation settings:").pack(anchor="w")
+
+        frame4 = tkinter.Frame(settings_frame)
+        frame4.pack(anchor="w")
+        tkinter.Label(frame4, text="Delta time").pack(side="left")
+        delta_time_box = tkinter.Entry(frame4)
+        delta_time_box.insert("end", str(delta_time))
+        delta_time_box.pack(side="left")
+
         settings_button_frame = tkinter.Frame(settings_frame)
-        settings_button_frame.pack(side="bottom")
+        settings_button_frame.pack(side="bottom", fill="x")
 
         def apply_settings():
-            global centre_reference, scale_mode, scale_multiplayer
-            nonlocal centre_option, scale_multiplayer_box, scale_option
+            global centre_reference, scale_mode, scale_multiplayer, history_record_length, delta_time
+            nonlocal centre_option, scale_multiplayer_box, scale_option, path_length_box, delta_time_box
+
             centre_reference = centre_option.get()
             try:
                 scale_multiplayer = float(scale_multiplayer_box.get())
             except TypeError:
                 pass
             scale_mode = scale_option.get()
+            try:
+                history_record_length = int(path_length_box.get())
+            except TypeError:
+                pass
+            try:
+                delta_time = float(delta_time_box.get())
+            except TypeError:
+                pass
+
+            # Then update the display
             update_display()
 
-        apply_button = tkinter.Button(settings_button_frame, text="Apply settings", command=apply_settings)
-        apply_button.pack(side="left")
+        apply_button = tkinter.Button(settings_button_frame, text="Apply current settings", command=apply_settings)
+        apply_button.pack(side="left", fill="x", expand=True)
         objects_button = tkinter.Button(settings_button_frame, text="Objects' properties", command=apply_settings)
-        objects_button.pack(side="left")
+        objects_button.pack(side="left", fill="x", expand=True)
 
     print("settings_toggle", settings_toggle)
 
