@@ -232,7 +232,7 @@ def main_update():
     update_display()
 
 
-def toggle_settings():
+def settings_tab_handler():
     global settings_toggle, settings_frame, centre_reference, scale_mode, scale_multiplier, history_record_length
     global delta_time
     if settings_toggle:
@@ -337,7 +337,7 @@ main_window.title("2D simulation of the Newtonian model of gravity")
 button_frame = tkinter.Frame(main_window)
 button_frame.pack(side="bottom", fill="x")
 settings_toggle = False
-settings_button = tkinter.Button(button_frame, text="Settings", command=toggle_settings)
+settings_button = tkinter.Button(button_frame, text="Settings", command=settings_tab_handler)
 settings_button.pack(side="right", fill="x")
 next_frame_button = tkinter.Button(button_frame, text="Next frame", command=main_update)
 next_frame_button.pack(side="left", fill="x", expand=True)
@@ -346,12 +346,6 @@ main_display = tkinter.Canvas(main_window, bg="black")
 main_display.pack(side="left", fill="both", expand=True)
 main_display.bind("<Configure>", update_display)  # update display at every resize
 settings_frame = tkinter.Frame(main_window)
-
-# test settings:
-# absolute_scale = True
-# centre_reference = "origin"
-# centre_reference = "mass"
-# centre_reference = "Obj1"
 
 update_display()
 main_window.mainloop()
