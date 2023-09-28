@@ -260,17 +260,14 @@ def run_simulation():
 
         run_simulation_button.configure(text="Stop simulation", command=stop_simulation)
 
-        delta_time = rate / 5
-        num_of_frames = 5
+        delta_time = rate / 10
         while running_simulation:
             time1 = time.time()
-            for a in range(num_of_frames):
-                calculate_next_frame(delta_time)
-                update_display()
+            calculate_next_frame(delta_time)
+            update_display()
             time2 = time.time()
-            num_of_frames = int(num_of_frames / (time2 - time1))
-            delta_time = rate/num_of_frames
-            print(time2-time1, num_of_frames, delta_time)
+            delta_time = rate * (time2 - time1)
+            print(time2-time1, delta_time)
 
 
 def settings_tab_handler():
