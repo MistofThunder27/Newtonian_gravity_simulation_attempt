@@ -5,7 +5,6 @@ import tkinter
 G = 6.67408e-11
 max_object_num = 10
 # Default settings
-delta_time = 10000
 history_record_length = 100
 centre_reference = "geometrical"
 scale_mode = "fit to zoom"
@@ -44,7 +43,7 @@ global_state = test_case_1
 
 
 # The following function takes the current frame information state and calculates the next
-def update_state():
+def calculate_next_frame(delta_time):
     global global_state
     print("CALC NEW FRAME ---------------------------------------")
     new_frame_kinetic_state = {}
@@ -136,13 +135,6 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
         furthest_y = (y_max - y_min) / 2
         print("furthest points at", furthest_x, furthest_y)
 
-        if scale_mode == "1 pixel = 1 meter":
-            scale = 1
-        else:  # scale_mode == "fit to zoom"
-            # the 0.98* is to keep some distance to the display borders
-            # The 2* is so that it covers the same distance on both sides
-            scale = 0.98 * min(win_width / (2 * furthest_x), win_height / (2 * furthest_y))
-
     else:
         if centre_reference in global_state:
             print("centre:", centre_reference)
@@ -168,7 +160,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             centre_y = centre_y / sum_of_masses
 
         print("centre point", centre_x, centre_y)
-        # scale for these centre references
+        # furthest x and y for these centre references
         furthest_x = furthest_y = 0
         for object_name in global_state:
             obj_x_pos, obj_y_pos = global_state[object_name][1][:2]
@@ -177,12 +169,12 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             furthest_y = max(furthest_y, math.fabs(obj_y_pos - centre_y) + radius)
         print("furthest points at", furthest_x, furthest_y)
 
-        if scale_mode == "1 pixel = 1 meter":
-            scale = 1
-        else:  # scale_mode == "fit to zoom"
-            # the 0.98* is to keep some distance to the display borders
-            # The 2* is so that it covers the same distance on both sides
-            scale = 0.98 * min(win_width / (2 * furthest_x), win_height / (2 * furthest_y))
+    if scale_mode == "1 pixel = 1 meter":
+        scale = 1
+    else:  # scale_mode == "fit to zoom"
+        # the 0.98* is to keep some distance to the display borders
+        # The 2* is so that it covers the same distance on both sides
+        scale = 0.98 * min(win_width / (2 * furthest_x), win_height / (2 * furthest_y))
 
     scale *= scale_multiplier  # to adjust the scale
     print("scale", scale)
@@ -199,7 +191,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
     main_display.create_line(zero_x_coordinate, 0, zero_x_coordinate, win_height, fill="white")  # y-axis
     # Draw objects and their paths
     for object_name in global_state:
-        # Draw objects
+        # Draw object
         print(object_name)
         object_numbers = global_state[object_name][1][:2]
         object_colour, radius = global_state[object_name][-2:]
@@ -227,14 +219,22 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             x0, y0 = x1, y1
 
 
-def main_update():
-    update_state()
-    update_display()
+# The 3 functions bellow are button commands
+def simulate_x_frames():
+    global num_of_frames_entry, delta_time_entry
+    try:
+        num_of_frames = int(num_of_frames_entry.get())
+        delta_time = float(delta_time_entry.get())
+    except ValueError:
+        pass
+    else:
+        for a in range(num_of_frames):
+            calculate_next_frame(delta_time)
+            update_display()
 
 
 def settings_tab_handler():
     global settings_toggle, settings_frame, centre_reference, scale_mode, scale_multiplier, history_record_length
-    global delta_time
     if settings_toggle:
         settings_toggle = False
         settings_frame.destroy()
@@ -243,9 +243,7 @@ def settings_tab_handler():
         # settings frame set up
         settings_frame = tkinter.Frame(main_window)
         settings_frame.pack(side="right", fill="both")
-        tkinter.Label(settings_frame, text="Settings menu").pack()
-
-        tkinter.Label(settings_frame, text="///Display settings:").pack(anchor="w")
+        tkinter.Label(settings_frame, text="Display settings menu").pack()
 
         frame1 = tkinter.Frame(settings_frame)
         frame1.pack(anchor="w")
@@ -276,21 +274,9 @@ def settings_tab_handler():
         path_length_box.insert("end", str(history_record_length))
         path_length_box.pack(side="left")
 
-        tkinter.Label(settings_frame, text="///Simulation settings:").pack(anchor="w")
-
-        frame4 = tkinter.Frame(settings_frame)
-        frame4.pack(anchor="w")
-        tkinter.Label(frame4, text="Delta time").pack(side="left")
-        delta_time_box = tkinter.Entry(frame4)
-        delta_time_box.insert("end", str(delta_time))
-        delta_time_box.pack(side="left")
-
-        settings_button_frame = tkinter.Frame(settings_frame)
-        settings_button_frame.pack(side="bottom", fill="x")
-
         def apply_settings():
-            global centre_reference, scale_mode, scale_multiplier, history_record_length, delta_time
-            nonlocal centre_option, scale_multiplier_box, scale_option, path_length_box, delta_time_box
+            global centre_reference, scale_mode, scale_multiplier, history_record_length
+            nonlocal centre_option, scale_multiplier_box, scale_option, path_length_box
 
             centre_reference = centre_option.get()
             try:
@@ -302,18 +288,12 @@ def settings_tab_handler():
                 history_record_length = int(path_length_box.get())
             except TypeError:
                 pass
-            try:
-                delta_time = float(delta_time_box.get())
-            except TypeError:
-                pass
 
             # Then update the display
             update_display()
 
-        apply_button = tkinter.Button(settings_button_frame, text="Apply current settings", command=apply_settings)
-        apply_button.pack(side="left", fill="x", expand=True)
-        objects_button = tkinter.Button(settings_button_frame, text="Objects' properties", command=apply_settings)
-        objects_button.pack(side="left", fill="x", expand=True)
+        apply_button = tkinter.Button(settings_frame, text="Apply current settings", command=apply_settings)
+        apply_button.pack(side="bottom", fill="x")
 
     print("settings_toggle", settings_toggle)
 
@@ -334,13 +314,33 @@ main_window = tkinter.Tk()
 main_window.geometry("1000x600+100+100")
 main_window.title("2D simulation of the Newtonian model of gravity")
 
-button_frame = tkinter.Frame(main_window)
-button_frame.pack(side="bottom", fill="x")
+menu_frame = tkinter.Frame(main_window)
+menu_frame.pack(side="bottom", fill="x")
+
+run_simulation_button = tkinter.Button(menu_frame, text="Run simulation", foreground="blue", command=simulate_x_frames)
+run_simulation_button.pack(side="left", fill="x", expand=True)
+tkinter.Label(menu_frame, text="at", foreground="blue").pack(side="left")
+simulation_rate = tkinter.Entry(menu_frame, justify="right")
+simulation_rate.insert("end", "1")
+simulation_rate.pack(side="left")
+tkinter.Label(menu_frame, text="sim seconds/real second", foreground="blue").pack(side="left")
+
+run_frames_button = tkinter.Button(menu_frame, text="Simulate", foreground="red", command=simulate_x_frames)
+run_frames_button.pack(side="left", fill="x", expand=True)
+num_of_frames_entry = tkinter.Entry(menu_frame, justify="right")
+num_of_frames_entry.insert("end", "1")
+num_of_frames_entry.pack(side="left")
+tkinter.Label(menu_frame, text="frames at", foreground="red").pack(side="left")
+delta_time_entry = tkinter.Entry(menu_frame, justify="right")
+delta_time_entry.insert("end", "1")
+delta_time_entry.pack(side="left")
+tkinter.Label(menu_frame, text="seconds per frame", foreground="red").pack(side="left")
+
 settings_toggle = False
-settings_button = tkinter.Button(button_frame, text="Settings", command=settings_tab_handler)
-settings_button.pack(side="right", fill="x")
-next_frame_button = tkinter.Button(button_frame, text="Next frame", command=main_update)
-next_frame_button.pack(side="left", fill="x", expand=True)
+settings_button = tkinter.Button(menu_frame, text="Display settings", command=settings_tab_handler)
+settings_button.pack(side="right", fill="x", expand=True)
+object_properties_button = tkinter.Button(menu_frame, text="Edit objects")
+object_properties_button.pack(side="right", fill="x", expand=True)
 
 main_display = tkinter.Canvas(main_window, bg="black")
 main_display.pack(side="left", fill="both", expand=True)
