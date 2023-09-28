@@ -20,10 +20,10 @@ location_history = {}
 
 # Test cases
 test_case_1 = {  # Solar system (recommended delta_time 10000)
-    "Sun": [1.989e30, [0, 0, 0, 0], "yellow", 10000000000],
-    "Mercury": [3.301e23, [5.8e10, 0, 0, 47000], "brown", 300000000],
-    "Venus": [4.867e24, [1.08e11, 0, 0, 35000], "orange", 300000000],
-    "Earth": [5.9722e24, [1.5037e11, 0, 0, 29780], "blue", 300000000],
+    "Sun": [1.989e30, [0, 0, 0, 0], "yellow", 3000000000],
+    "Mercury": [3.301e23, [5.8e10, 0, 0, 47000], "brown", 200000000],
+    "Venus": [4.867e24, [1.08e11, 0, 0, 35000], "orange", 200000000],
+    "Earth": [5.9722e24, [1.5037e11, 0, 0, 29780], "blue", 200000000],
     "Moon": [7.34767e22, [1.507544e11, 0, 0, 30802], "grey", 100000000]
 }
 test_case_2 = {  # direct collision (recommended delta_time 5)
@@ -260,8 +260,8 @@ def run_simulation():
 
         run_simulation_button.configure(text="Stop simulation", command=stop_simulation)
 
-        delta_time = rate/10
-        num_of_frames = 10
+        delta_time = rate / 5
+        num_of_frames = 5
         while running_simulation:
             time1 = time.time()
             for a in range(num_of_frames):
