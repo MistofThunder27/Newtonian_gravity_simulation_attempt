@@ -1,5 +1,6 @@
 import math
 import tkinter
+import time
 
 # Reference values
 G = 6.67408e-11
@@ -228,9 +229,48 @@ def simulate_x_frames():
     except ValueError:
         pass
     else:
+        time1 = time.time()
         for a in range(num_of_frames):
             calculate_next_frame(delta_time)
             update_display()
+        time2 = time.time()
+        print(f"it took {time2-time1} to do {a+1} frames at path length {history_record_length}")
+
+
+def run_simulation():
+    global simulation_rate, run_simulation_button, run_frames_button, object_properties_button
+    try:
+        rate = float(simulation_rate.get())
+    except ValueError:
+        pass
+    else:
+        running_simulation = True
+        simulation_rate.configure(state="disabled")
+        run_frames_button.configure(state="disabled")
+        object_properties_button.configure(state="disabled")
+
+        def stop_simulation():
+            global simulation_rate, run_simulation_button, run_frames_button, object_properties_button
+            nonlocal running_simulation
+            running_simulation = False
+            simulation_rate.configure(state="normal")
+            run_frames_button.configure(state="normal")
+            object_properties_button.configure(state="normal")
+            run_simulation_button.configure(text="Run simulation", command=run_simulation)
+
+        run_simulation_button.configure(text="Stop simulation", command=stop_simulation)
+
+        delta_time = rate/10
+        num_of_frames = 10
+        while running_simulation:
+            time1 = time.time()
+            for a in range(num_of_frames):
+                calculate_next_frame(delta_time)
+                update_display()
+            time2 = time.time()
+            num_of_frames = int(num_of_frames / (time2 - time1))
+            delta_time = rate/num_of_frames
+            print(time2-time1, num_of_frames, delta_time)
 
 
 def settings_tab_handler():
@@ -281,12 +321,12 @@ def settings_tab_handler():
             centre_reference = centre_option.get()
             try:
                 scale_multiplier = float(scale_multiplier_box.get())
-            except TypeError:
+            except ValueError:
                 pass
             scale_mode = scale_option.get()
             try:
                 history_record_length = int(path_length_box.get())
-            except TypeError:
+            except ValueError:
                 pass
 
             # Then update the display
@@ -317,7 +357,7 @@ main_window.title("2D simulation of the Newtonian model of gravity")
 menu_frame = tkinter.Frame(main_window)
 menu_frame.pack(side="bottom", fill="x")
 
-run_simulation_button = tkinter.Button(menu_frame, text="Run simulation", foreground="blue", command=simulate_x_frames)
+run_simulation_button = tkinter.Button(menu_frame, text="Run simulation", foreground="blue", command=run_simulation)
 run_simulation_button.pack(side="left", fill="x", expand=True)
 tkinter.Label(menu_frame, text="at", foreground="blue").pack(side="left")
 simulation_rate = tkinter.Entry(menu_frame, justify="right")
