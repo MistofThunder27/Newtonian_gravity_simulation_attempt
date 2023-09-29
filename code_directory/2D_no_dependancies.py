@@ -203,8 +203,9 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
         x1 = (obj_x_rel_pos + radius) * scale + win_width / 2  # right-most point
         y0 = win_height / 2 - (obj_y_rel_pos + radius) * scale  # bottom-most point
         y1 = win_height / 2 - (obj_y_rel_pos - radius) * scale  # top-most point
-        print("circle coordinate x0, x1 then y0, y1", x0, x1, y0, y1)
-        main_display.create_oval(x0, y0, x1, y1, fill=object_colour)
+        if (0 < x0 < win_width or 0 < x1 < win_width) and (0 < y0 < win_height or 0 < y1 < win_height):  # if in frame
+            print("circle coordinate x0, x1 then y0, y1", x0, x1, y0, y1)
+            main_display.create_oval(x0, y0, x1, y1, fill=object_colour)
 
         # Draw path from location history
         object_history = location_history[object_name]
@@ -215,28 +216,16 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
         for i in range(1, len(object_history)):
             x1 = (object_history[i][0] - centre_x) * scale + win_width / 2
             y1 = win_height / 2 - (object_history[i][1] - centre_y) * scale
-            print("next coordinate in line", x1, y1)
-            main_display.create_line(x0, y0, x1, y1, fill=object_colour)
-            x0, y0 = x1, y1
+            # if the new point is the same pixel as the old point, then skip entirely
+            if math.fabs(x1 - x0) > 1 or math.fabs(y1 - y0) > 1:
+                # only draw the line if it is in frame
+                if 0 < x0 < win_width and 0 < x1 < win_width and 0 < y0 < win_height and 0 < y1 < win_height:
+                    print("next coordinate in line", x1, y1)
+                    main_display.create_line(x0, y0, x1, y1, fill=object_colour)
+                x0, y0 = x1, y1
 
 
 # The 3 functions bellow are button commands
-def simulate_x_frames():
-    global num_of_frames_entry, delta_time_entry
-    try:
-        num_of_frames = int(num_of_frames_entry.get())
-        delta_time = float(delta_time_entry.get())
-    except ValueError:
-        pass
-    else:
-        time1 = time.time()
-        for a in range(num_of_frames):
-            calculate_next_frame(delta_time)
-            update_display()
-        time2 = time.time()
-        print(f"it took {time2-time1} to do {a+1} frames at path length {history_record_length}")
-
-
 def run_simulation():
     global simulation_rate, run_simulation_button, run_frames_button, object_properties_button
     try:
@@ -267,7 +256,23 @@ def run_simulation():
             update_display()
             time2 = time.time()
             delta_time = rate * (time2 - time1)
-            print(time2-time1, delta_time)
+            print(time2 - time1, delta_time)
+
+
+def simulate_x_frames():
+    global num_of_frames_entry, delta_time_entry
+    try:
+        num_of_frames = int(num_of_frames_entry.get())
+        delta_time = float(delta_time_entry.get())
+    except ValueError:
+        pass
+    else:
+        time1 = time.time()
+        for a in range(num_of_frames):
+            calculate_next_frame(delta_time)
+            update_display()
+        time2 = time.time()
+        print(f"it took {time2 - time1} to do {a + 1} frames at path length {history_record_length}")
 
 
 def settings_tab_handler():
