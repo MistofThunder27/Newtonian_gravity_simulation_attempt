@@ -199,8 +199,8 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
         corrected_distance_between_grids = 10 ** (round(3 * math.log10(distance_between_grids)) / 3)
         print("corrected_distance_between_grids", corrected_distance_between_grids)
         # calculate the indexes which are how many gridlines before or after the zero lines the display starts
-        y_index = math.floor(-zero_y_coordinate / (scale * corrected_distance_between_grids))
-        x_index = math.floor(-zero_x_coordinate / (scale * corrected_distance_between_grids))
+        y_index = math.ceil(-zero_y_coordinate / (scale * corrected_distance_between_grids))
+        x_index = math.ceil(-zero_x_coordinate / (scale * corrected_distance_between_grids))
         while (y_level := zero_y_coordinate + corrected_distance_between_grids * y_index * scale) < win_height:
             print("y_level", y_level)
             main_display.create_line(0, y_level, win_width, y_level, fill="grey")  # x-grid
@@ -220,7 +220,6 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
     # Draw object paths
     for object_name in global_state:
         print(object_name)
-        object_colour = global_state[object_name][-2]
         object_history = location_history[object_name]
         print("obj his", object_history)
         x0 = object_history[0][0] * scale + zero_x_coordinate
@@ -234,21 +233,21 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
                 # only draw the line if it is in frame
                 if 0 < x0 < win_width and 0 < x1 < win_width and 0 < y0 < win_height and 0 < y1 < win_height:
                     print("next coordinate in line", x1, y1)
-                    main_display.create_line(x0, y0, x1, y1, fill=object_colour)
+                    main_display.create_line(x0, y0, x1, y1, fill=global_state[object_name][-2])
                 x0, y0 = x1, y1
 
     # Draw object
     for object_name in global_state:
         print(object_name)
         obj_x_pos, obj_y_pos = global_state[object_name][1][:2]
-        object_colour, radius = global_state[object_name][-2:]
+        radius = global_state[object_name][-1]
         x0 = (obj_x_pos - radius) * scale + zero_x_coordinate  # left-most point
         x1 = (obj_x_pos + radius) * scale + zero_x_coordinate  # right-most point
         y0 = zero_y_coordinate - (obj_y_pos + radius) * scale  # bottom-most point
         y1 = zero_y_coordinate - (obj_y_pos - radius) * scale  # top-most point
         if (0 < x0 < win_width or 0 < x1 < win_width) and (0 < y0 < win_height or 0 < y1 < win_height):  # if in frame
             print("circle coordinate x0, x1 then y0, y1", x0, x1, y0, y1)
-            main_display.create_oval(x0, y0, x1, y1, fill=object_colour)
+            main_display.create_oval(x0, y0, x1, y1, fill=global_state[object_name][-2])
 
 
 # The 3 functions bellow are button commands
@@ -356,7 +355,6 @@ def settings_tab_handler():
             except ValueError:
                 pass
 
-            # Then update the display
             update_display()
 
         apply_button = tkinter.Button(settings_frame, text="Apply current settings", command=apply_settings)
