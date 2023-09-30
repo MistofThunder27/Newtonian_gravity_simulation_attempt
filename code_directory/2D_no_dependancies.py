@@ -172,7 +172,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             furthest_y = max(furthest_y, math.fabs(obj_y_pos - centre_y) + radius)
         print("furthest points at", furthest_x, furthest_y)
 
-    # calculate scale which is the number of pixels per meter
+    # calculate scale which is the number of pixels per meter TODO: add focus scale
     if scale_mode == "1 pixel = 1 meter":
         scale = 1
     else:  # scale_mode == "fit to zoom"
@@ -193,10 +193,13 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
 
     if draw_grids:
         # distance across display is nuber of pixels across / scale
-        distance_between_grids = max(win_height, win_width) / (8 * scale)  # the 8 is for number of approx. gridlines
-        print("distance_between_grids", distance_between_grids)
-        # round to nearest 10 ** (n/3) TODO: find better approximation
-        corrected_distance_between_grids = 10 ** (round(3 * math.log10(distance_between_grids)) / 3)
+        # the 8 is number of approx. gridlines
+        log_distance_between_grids = math.log10(max(win_height, win_width) / (7 * scale))
+        print("log distance_between_grids", log_distance_between_grids)
+        # round to nearest 1, 2 or 5 * 10**n
+        corrected_distance_order_of_magnitude = math.floor(log_distance_between_grids)
+        corrected_distance_multiplier = math.floor(3*(log_distance_between_grids % 1))**2 + 1
+        corrected_distance_between_grids = corrected_distance_multiplier * (10 ** corrected_distance_order_of_magnitude)
         print("corrected_distance_between_grids", corrected_distance_between_grids)
         # calculate the indexes which are how many gridlines before or after the zero lines the display starts
         y_index = math.ceil(-zero_y_coordinate / (scale * corrected_distance_between_grids))
@@ -204,10 +207,16 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
         while (y_level := zero_y_coordinate + corrected_distance_between_grids * y_index * scale) < win_height:
             print("y_level", y_level)
             main_display.create_line(0, y_level, win_width, y_level, fill="grey")  # x-grid
+            main_display.create_text(20, y_level, fill="white",
+                                     text=f"{-corrected_distance_multiplier * y_index}e"
+                                          f"{corrected_distance_order_of_magnitude}")
             y_index += 1
         while (x_level := zero_x_coordinate + corrected_distance_between_grids * x_index * scale) < win_width:
             print("x_level", x_level)
             main_display.create_line(x_level, 0, x_level, win_height, fill="grey")  # y-grid
+            main_display.create_text(x_level, 10, fill="white",
+                                     text=f"{corrected_distance_multiplier * x_index}e"
+                                          f"{corrected_distance_order_of_magnitude}")
             x_index += 1
 
     if draw_axes:
@@ -297,7 +306,7 @@ def simulate_x_frames():
             update_display()
 
 
-def settings_tab_handler():
+def settings_tab_handler():  # TODO: try to extract from function
     global settings_toggle, settings_frame, centre_reference, scale_mode, scale_multiplier, history_record_length
     if settings_toggle:
         settings_toggle = False
@@ -412,5 +421,4 @@ main_display.pack(side="left", fill="both", expand=True)
 main_display.bind("<Configure>", update_display)  # update display at every resize
 settings_frame = tkinter.Frame(main_window)
 
-update_display()
 main_window.mainloop()
