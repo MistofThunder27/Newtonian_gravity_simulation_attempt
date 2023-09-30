@@ -10,6 +10,8 @@ history_record_length = 100
 centre_reference = "geometrical"
 scale_mode = "fit to zoom"
 scale_multiplier = 1
+draw_grids = True
+draw_axes = True
 
 # store the global state as a dictionary. Each entry in this dictionary is as follows:
 # global_state = {obj_name: [[obj_mass, [obj_x_pos, obj_y_pos, obj_x_vel, obj_y_vel], "colour", radius]}
@@ -170,6 +172,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             furthest_y = max(furthest_y, math.fabs(obj_y_pos - centre_y) + radius)
         print("furthest points at", furthest_x, furthest_y)
 
+    # calculate scale which is the number of pixels per meter
     if scale_mode == "1 pixel = 1 meter":
         scale = 1
     else:  # scale_mode == "fit to zoom"
@@ -182,40 +185,50 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
 
     # draw to canvas
     main_display.delete("all")
-    # Find the zero line axes  #TODO: add support for grids
+    # Find the pixel corresponding to the origin point
     # the positive centre_y is because in Tkinter y increases downwards
     zero_y_coordinate = win_height / 2 + centre_y * scale
     zero_x_coordinate = win_width / 2 - centre_x * scale
     print("zero coordinates", zero_x_coordinate, zero_y_coordinate)
-    # Draw them
-    main_display.create_line(0, zero_y_coordinate, win_width, zero_y_coordinate, fill="white")  # x-axis
-    main_display.create_line(zero_x_coordinate, 0, zero_x_coordinate, win_height, fill="white")  # y-axis
-    # Draw objects and their paths
-    for object_name in global_state:
-        # Draw object
-        print(object_name)
-        object_numbers = global_state[object_name][1][:2]
-        object_colour, radius = global_state[object_name][-2:]
-        obj_x_rel_pos = object_numbers[0] - centre_x
-        obj_y_rel_pos = object_numbers[1] - centre_y
-        print("rel pos", obj_x_rel_pos, obj_y_rel_pos)
-        x0 = (obj_x_rel_pos - radius) * scale + win_width / 2  # left-most point
-        x1 = (obj_x_rel_pos + radius) * scale + win_width / 2  # right-most point
-        y0 = win_height / 2 - (obj_y_rel_pos + radius) * scale  # bottom-most point
-        y1 = win_height / 2 - (obj_y_rel_pos - radius) * scale  # top-most point
-        if (0 < x0 < win_width or 0 < x1 < win_width) and (0 < y0 < win_height or 0 < y1 < win_height):  # if in frame
-            print("circle coordinate x0, x1 then y0, y1", x0, x1, y0, y1)
-            main_display.create_oval(x0, y0, x1, y1, fill=object_colour)
 
-        # Draw path from location history
+    if draw_grids:
+        # distance across display is nuber of pixels across / scale
+        distance_between_grids = max(win_height, win_width) / (8 * scale)  # the 8 is for number of approx. gridlines
+        print("distance_between_grids", distance_between_grids)
+        # round to nearest 10 ** (n/3) TODO: find better approximation
+        corrected_distance_between_grids = 10 ** (round(3 * math.log10(distance_between_grids)) / 3)
+        print("corrected_distance_between_grids", corrected_distance_between_grids)
+        # calculate the indexes which are how many gridlines before or after the zero lines the display starts
+        y_index = math.floor(-zero_y_coordinate / (scale * corrected_distance_between_grids))
+        x_index = math.floor(-zero_x_coordinate / (scale * corrected_distance_between_grids))
+        while (y_level := zero_y_coordinate + corrected_distance_between_grids * y_index * scale) < win_height:
+            print("y_level", y_level)
+            main_display.create_line(0, y_level, win_width, y_level, fill="grey")  # x-grid
+            y_index += 1
+        while (x_level := zero_x_coordinate + corrected_distance_between_grids * x_index * scale) < win_width:
+            print("x_level", x_level)
+            main_display.create_line(x_level, 0, x_level, win_height, fill="grey")  # y-grid
+            x_index += 1
+
+    if draw_axes:
+        # Draw axes if in frame
+        if 0 < zero_y_coordinate < win_height:
+            main_display.create_line(0, zero_y_coordinate, win_width, zero_y_coordinate, fill="white")  # x-axis
+        if 0 < zero_x_coordinate < win_height:
+            main_display.create_line(zero_x_coordinate, 0, zero_x_coordinate, win_height, fill="white")  # y-axis
+
+    # Draw object paths
+    for object_name in global_state:
+        print(object_name)
+        object_colour = global_state[object_name][-2]
         object_history = location_history[object_name]
         print("obj his", object_history)
-        x0 = (object_history[0][0] - centre_x) * scale + win_width / 2
-        y0 = win_height / 2 - (object_history[0][1] - centre_y) * scale
+        x0 = object_history[0][0] * scale + zero_x_coordinate
+        y0 = zero_y_coordinate - object_history[0][1] * scale
         print("starting coordinate in line", x0, y0)
         for i in range(1, len(object_history)):
-            x1 = (object_history[i][0] - centre_x) * scale + win_width / 2
-            y1 = win_height / 2 - (object_history[i][1] - centre_y) * scale
+            x1 = object_history[i][0] * scale + zero_x_coordinate
+            y1 = zero_y_coordinate - object_history[i][1] * scale
             # if the new point is the same pixel as the old point, then skip entirely
             if math.fabs(x1 - x0) > 1 or math.fabs(y1 - y0) > 1:
                 # only draw the line if it is in frame
@@ -223,6 +236,19 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
                     print("next coordinate in line", x1, y1)
                     main_display.create_line(x0, y0, x1, y1, fill=object_colour)
                 x0, y0 = x1, y1
+
+    # Draw object
+    for object_name in global_state:
+        print(object_name)
+        obj_x_pos, obj_y_pos = global_state[object_name][1][:2]
+        object_colour, radius = global_state[object_name][-2:]
+        x0 = (obj_x_pos - radius) * scale + zero_x_coordinate  # left-most point
+        x1 = (obj_x_pos + radius) * scale + zero_x_coordinate  # right-most point
+        y0 = zero_y_coordinate - (obj_y_pos + radius) * scale  # bottom-most point
+        y1 = zero_y_coordinate - (obj_y_pos - radius) * scale  # top-most point
+        if (0 < x0 < win_width or 0 < x1 < win_width) and (0 < y0 < win_height or 0 < y1 < win_height):  # if in frame
+            print("circle coordinate x0, x1 then y0, y1", x0, x1, y0, y1)
+            main_display.create_oval(x0, y0, x1, y1, fill=object_colour)
 
 
 # The 3 functions bellow are button commands
@@ -267,12 +293,9 @@ def simulate_x_frames():
     except ValueError:
         pass
     else:
-        time1 = time.time()
         for a in range(num_of_frames):
             calculate_next_frame(delta_time)
             update_display()
-        time2 = time.time()
-        print(f"it took {time2 - time1} to do {a + 1} frames at path length {history_record_length}")
 
 
 def settings_tab_handler():
@@ -315,6 +338,8 @@ def settings_tab_handler():
         path_length_box = tkinter.Entry(frame3)
         path_length_box.insert("end", str(history_record_length))
         path_length_box.pack(side="left")
+
+        # TODO: add grids and axes
 
         def apply_settings():
             global centre_reference, scale_mode, scale_multiplier, history_record_length
