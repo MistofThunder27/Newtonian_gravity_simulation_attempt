@@ -11,6 +11,7 @@ centre_reference = "geometrical"
 scale_mode = "fit to zoom"
 scale_multiplier = 1
 draw_grids = True
+label_grids = True
 draw_axes = True
 
 # store the global state as a dictionary. Each entry in this dictionary is as follows:
@@ -28,9 +29,9 @@ test_case_1 = {  # Solar system (recommended delta_time 10000)
     "Earth": [5.9722e24, [1.5037e11, 0, 0, 29780], "blue", 200000000],
     "Moon": [7.34767e22, [1.507544e11, 0, 0, 30802], "grey", 100000000]
 }
-test_case_2 = {  # direct collision (recommended delta_time 5)
-    "Obj1": [1e10, [10, 0, 0, 0], "red", 1],
-    "Obj2": [1e10, [-10, 0, 0, 0], "blue", 1]
+test_case_2 = {  # parallel movement (recommended delta_time 5)
+    "Obj1": [1e10, [10, 0, 0, 0.125], "red", 1],
+    "Obj2": [1e10, [-10, 0, 0, 0.125], "blue", 1]
 }
 test_case_3 = {  # double orbit (recommended delta_time 5)
     "Obj1": [1e10, [20, 0, 0, -0.08], "red", 1],
@@ -172,13 +173,15 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             furthest_y = max(furthest_y, math.fabs(obj_y_pos - centre_y) + radius)
         print("furthest points at", furthest_x, furthest_y)
 
-    # calculate scale which is the number of pixels per meter TODO: add focus scale
-    if scale_mode == "1 pixel = 1 meter":
+    # calculate scale which is the number of pixels per meter
+    if scale_mode == "absolute":
         scale = 1
+    elif scale_mode == "stable":
+        scale = 10 ** math.ceil(math.log10(0.5 * min(win_width / furthest_x, win_height / furthest_y)))
     else:  # scale_mode == "fit to zoom"
-        # the 0.98* is to keep some distance to the display borders
-        # The 2* is so that it covers the same distance on both sides
-        scale = 0.98 * min(win_width / (2 * furthest_x), win_height / (2 * furthest_y))
+        # the 0.49* comes from 0.5 as there should be the furthest distance on both sides. Then it was decreased by a
+        # bit to keep some distance to the display borders
+        scale = 0.49 * min(win_width / furthest_x, win_height / furthest_y)
 
     scale *= scale_multiplier  # to adjust the scale
     print("scale", scale)
@@ -207,16 +210,18 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
         while (y_level := zero_y_coordinate + corrected_distance_between_grids * y_index * scale) < win_height:
             print("y_level", y_level)
             main_display.create_line(0, y_level, win_width, y_level, fill="grey")  # x-grid
-            main_display.create_text(20, y_level, fill="white",
-                                     text=f"{-corrected_distance_multiplier * y_index}e"
-                                          f"{corrected_distance_order_of_magnitude}")
+            if label_grids:
+                main_display.create_text(20, y_level, fill="white",
+                                         text=f"{-corrected_distance_multiplier * y_index}e"
+                                              f"{corrected_distance_order_of_magnitude}")
             y_index += 1
         while (x_level := zero_x_coordinate + corrected_distance_between_grids * x_index * scale) < win_width:
             print("x_level", x_level)
             main_display.create_line(x_level, 0, x_level, win_height, fill="grey")  # y-grid
-            main_display.create_text(x_level, 10, fill="white",
-                                     text=f"{corrected_distance_multiplier * x_index}e"
-                                          f"{corrected_distance_order_of_magnitude}")
+            if label_grids:
+                main_display.create_text(x_level, 10, fill="white",
+                                         text=f"{corrected_distance_multiplier * x_index}e"
+                                              f"{corrected_distance_order_of_magnitude}")
             x_index += 1
 
     if draw_axes:
@@ -308,6 +313,7 @@ def simulate_x_frames():
 
 def settings_tab_handler():  # TODO: try to extract from function
     global settings_toggle, settings_frame, centre_reference, scale_mode, scale_multiplier, history_record_length
+    global draw_grids, label_grids, draw_axes
     if settings_toggle:
         settings_toggle = False
         settings_frame.destroy()
@@ -321,7 +327,7 @@ def settings_tab_handler():  # TODO: try to extract from function
         frame1 = tkinter.Frame(settings_frame)
         frame1.pack(anchor="w")
         tkinter.Label(frame1, text="Centre mode").pack(side="left")
-        centre_list = ["origin", "geometrical", "centre of mass"] + list(global_state)
+        centre_list = ["geometrical", "origin", "centre of mass"] + list(global_state)
         centre_option = tkinter.StringVar()
         centre_option.set(centre_reference)
         centre_reference_selector = tkinter.OptionMenu(frame1, centre_option, *centre_list)
@@ -334,7 +340,7 @@ def settings_tab_handler():  # TODO: try to extract from function
         scale_multiplier_box.insert("end", str(scale_multiplier))
         scale_multiplier_box.pack(side="left")
         tkinter.Label(frame2, text="x").pack(side="left")
-        scale_list = ["1 pixel = 1 meter", "fit to zoom"]
+        scale_list = ["fit to zoom", "stable", "absolute"]
         scale_option = tkinter.StringVar()
         scale_option.set(scale_mode)
         scale_mode_selector = tkinter.OptionMenu(frame2, scale_option, *scale_list)
@@ -347,11 +353,30 @@ def settings_tab_handler():  # TODO: try to extract from function
         path_length_box.insert("end", str(history_record_length))
         path_length_box.pack(side="left")
 
-        # TODO: add grids and axes
+        # grids and axes
+        grids_bool = tkinter.BooleanVar()
+        grids_bool.set(draw_grids)
+        grids_checkbox = tkinter.Checkbutton(settings_frame, text="Enable grids", variable=grids_bool,
+                                             onvalue=True, offvalue=False)
+        grids_checkbox.pack(anchor="w")
+
+        label_bool = tkinter.BooleanVar()
+        label_bool.set(label_grids)
+        label_checkbox = tkinter.Checkbutton(settings_frame, text="Label grids", variable=label_bool,
+                                             onvalue=True, offvalue=False)
+        label_checkbox.pack(anchor="w")
+
+        axes_bool = tkinter.BooleanVar()
+        axes_bool.set(draw_axes)
+        axes_checkbox = tkinter.Checkbutton(settings_frame, text="Highlight axes", variable=axes_bool,
+                                            onvalue=True, offvalue=False)
+        axes_checkbox.pack(anchor="w")
 
         def apply_settings():
-            global centre_reference, scale_mode, scale_multiplier, history_record_length
-            nonlocal centre_option, scale_multiplier_box, scale_option, path_length_box
+            global centre_reference, scale_mode, scale_multiplier, history_record_length, draw_grids, label_grids
+            global draw_axes
+            nonlocal centre_option, scale_multiplier_box, scale_option, path_length_box, grids_bool, label_bool
+            nonlocal axes_bool
 
             centre_reference = centre_option.get()
             try:
@@ -363,6 +388,9 @@ def settings_tab_handler():  # TODO: try to extract from function
                 history_record_length = int(path_length_box.get())
             except ValueError:
                 pass
+            draw_grids = grids_bool.get()
+            label_grids = label_bool.get()
+            draw_axes = axes_bool.get()
 
             update_display()
 
