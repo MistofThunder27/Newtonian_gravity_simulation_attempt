@@ -264,7 +264,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
             main_display.create_oval(x0, y0, x1, y1, fill=global_state[object_name][-2])
 
 
-# The 3 functions bellow are button commands
+# The 4 functions bellow are button commands
 def run_simulation():
     global simulation_rate, run_simulation_button, run_frames_button, object_properties_button
     try:
@@ -311,91 +311,23 @@ def simulate_x_frames():
             update_display()
 
 
-def settings_tab_handler():  # TODO: try to extract from function
-    global settings_toggle, settings_frame, centre_reference, scale_mode, scale_multiplier, history_record_length
-    global draw_grids, label_grids, draw_axes
+# def edit_objects():
+
+def settings_tab_handler():
+    global settings_toggle, settings_frame, centre_list, centre_option, scale_option, grids_bool, label_bool, axes_bool
     if settings_toggle:
         settings_toggle = False
-        settings_frame.destroy()
+        settings_frame.pack_forget()
     else:
         settings_toggle = True
-        # settings frame set up
-        settings_frame = tkinter.Frame(main_window)
         settings_frame.pack(side="right", fill="both")
-        tkinter.Label(settings_frame, text="Display settings menu").pack()
 
-        frame1 = tkinter.Frame(settings_frame)
-        frame1.pack(anchor="w")
-        tkinter.Label(frame1, text="Centre mode").pack(side="left")
         centre_list = ["geometrical", "origin", "centre of mass"] + list(global_state)
-        centre_option = tkinter.StringVar()
         centre_option.set(centre_reference)
-        centre_reference_selector = tkinter.OptionMenu(frame1, centre_option, *centre_list)
-        centre_reference_selector.pack(side="left")
-
-        frame2 = tkinter.Frame(settings_frame)
-        frame2.pack(anchor="w")
-        tkinter.Label(frame2, text="Scale mode").pack(side="left")
-        scale_multiplier_box = tkinter.Entry(frame2)
-        scale_multiplier_box.insert("end", str(scale_multiplier))
-        scale_multiplier_box.pack(side="left")
-        tkinter.Label(frame2, text="x").pack(side="left")
-        scale_list = ["fit to zoom", "stable", "absolute"]
-        scale_option = tkinter.StringVar()
         scale_option.set(scale_mode)
-        scale_mode_selector = tkinter.OptionMenu(frame2, scale_option, *scale_list)
-        scale_mode_selector.pack(side="left")
-
-        frame3 = tkinter.Frame(settings_frame)
-        frame3.pack(anchor="w")
-        tkinter.Label(frame3, text="Path length").pack(side="left")
-        path_length_box = tkinter.Entry(frame3)
-        path_length_box.insert("end", str(history_record_length))
-        path_length_box.pack(side="left")
-
-        # grids and axes
-        grids_bool = tkinter.BooleanVar()
         grids_bool.set(draw_grids)
-        grids_checkbox = tkinter.Checkbutton(settings_frame, text="Enable grids", variable=grids_bool,
-                                             onvalue=True, offvalue=False)
-        grids_checkbox.pack(anchor="w")
-
-        label_bool = tkinter.BooleanVar()
         label_bool.set(label_grids)
-        label_checkbox = tkinter.Checkbutton(settings_frame, text="Label grids", variable=label_bool,
-                                             onvalue=True, offvalue=False)
-        label_checkbox.pack(anchor="w")
-
-        axes_bool = tkinter.BooleanVar()
         axes_bool.set(draw_axes)
-        axes_checkbox = tkinter.Checkbutton(settings_frame, text="Highlight axes", variable=axes_bool,
-                                            onvalue=True, offvalue=False)
-        axes_checkbox.pack(anchor="w")
-
-        def apply_settings():
-            global centre_reference, scale_mode, scale_multiplier, history_record_length, draw_grids, label_grids
-            global draw_axes
-            nonlocal centre_option, scale_multiplier_box, scale_option, path_length_box, grids_bool, label_bool
-            nonlocal axes_bool
-
-            centre_reference = centre_option.get()
-            try:
-                scale_multiplier = float(scale_multiplier_box.get())
-            except ValueError:
-                pass
-            scale_mode = scale_option.get()
-            try:
-                history_record_length = int(path_length_box.get())
-            except ValueError:
-                pass
-            draw_grids = grids_bool.get()
-            label_grids = label_bool.get()
-            draw_axes = axes_bool.get()
-
-            update_display()
-
-        apply_button = tkinter.Button(settings_frame, text="Apply current settings", command=apply_settings)
-        apply_button.pack(side="bottom", fill="x")
 
     print("settings_toggle", settings_toggle)
 
@@ -447,6 +379,82 @@ object_properties_button.pack(side="right", fill="x", expand=True)
 main_display = tkinter.Canvas(main_window, bg="black")
 main_display.pack(side="left", fill="both", expand=True)
 main_display.bind("<Configure>", update_display)  # update display at every resize
+
+# settings frame set up
 settings_frame = tkinter.Frame(main_window)
+tkinter.Label(settings_frame, text="Display settings menu").pack()
+
+frame1 = tkinter.Frame(settings_frame)
+frame1.pack(anchor="w")
+tkinter.Label(frame1, text="Centre mode").pack(side="left")
+centre_list = ["geometrical", "origin", "centre of mass"] + list(global_state)
+centre_option = tkinter.StringVar()
+centre_option.set(centre_reference)
+centre_reference_selector = tkinter.OptionMenu(frame1, centre_option, *centre_list)
+centre_reference_selector.pack(side="left")
+
+frame2 = tkinter.Frame(settings_frame)
+frame2.pack(anchor="w")
+tkinter.Label(frame2, text="Scale mode").pack(side="left")
+scale_multiplier_box = tkinter.Entry(frame2)
+scale_multiplier_box.insert("end", str(scale_multiplier))
+scale_multiplier_box.pack(side="left")
+tkinter.Label(frame2, text="x").pack(side="left")
+scale_list = ["fit to zoom", "stable", "absolute"]
+scale_option = tkinter.StringVar()
+scale_option.set(scale_mode)
+scale_mode_selector = tkinter.OptionMenu(frame2, scale_option, *scale_list)
+scale_mode_selector.pack(side="left")
+
+frame3 = tkinter.Frame(settings_frame)
+frame3.pack(anchor="w")
+tkinter.Label(frame3, text="Path length").pack(side="left")
+path_length_box = tkinter.Entry(frame3)
+path_length_box.insert("end", str(history_record_length))
+path_length_box.pack(side="left")
+
+# grids and axes
+grids_bool = tkinter.BooleanVar()
+grids_bool.set(draw_grids)
+grids_checkbox = tkinter.Checkbutton(settings_frame, text="Enable grids", variable=grids_bool,
+                                     onvalue=True, offvalue=False)
+grids_checkbox.pack(anchor="w")
+
+label_bool = tkinter.BooleanVar()
+label_bool.set(label_grids)
+label_checkbox = tkinter.Checkbutton(settings_frame, text="Label grids", variable=label_bool,
+                                     onvalue=True, offvalue=False)
+label_checkbox.pack(anchor="w")
+
+axes_bool = tkinter.BooleanVar()
+axes_bool.set(draw_axes)
+axes_checkbox = tkinter.Checkbutton(settings_frame, text="Highlight axes", variable=axes_bool,
+                                    onvalue=True, offvalue=False)
+axes_checkbox.pack(anchor="w")
+
+
+def apply_settings():
+    global centre_reference, scale_mode, scale_multiplier, history_record_length, draw_grids, label_grids, draw_axes
+    global centre_option, scale_multiplier_box, scale_option, path_length_box, grids_bool, label_bool, axes_bool
+
+    centre_reference = centre_option.get()
+    try:
+        scale_multiplier = float(scale_multiplier_box.get())
+    except ValueError:
+        pass
+    scale_mode = scale_option.get()
+    try:
+        history_record_length = int(path_length_box.get())
+    except ValueError:
+        pass
+    draw_grids = grids_bool.get()
+    label_grids = label_bool.get()
+    draw_axes = axes_bool.get()
+
+    update_display()
+
+
+apply_button = tkinter.Button(settings_frame, text="Apply current settings", command=apply_settings)
+apply_button.pack(side="bottom", fill="x")
 
 main_window.mainloop()
