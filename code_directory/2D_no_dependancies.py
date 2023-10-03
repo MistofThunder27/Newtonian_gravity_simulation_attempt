@@ -178,7 +178,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
         scale = 1
     elif scale_mode == "stable":
         # The 0.5* is because there should be the furthest distance on both sides
-        scale = 10 ** math.ceil(math.log10(0.5 * min(win_width / furthest_x, win_height / furthest_y)))
+        scale = 10 ** math.floor(math.log10(0.5 * min(win_width / furthest_x, win_height / furthest_y)))
     else:  # scale_mode == "fit to zoom"
         # the 0.49* comes from 0.5, but it was decreased by a bit to keep some distance to the display borders
         scale = 0.49 * min(win_width / furthest_x, win_height / furthest_y)
@@ -359,18 +359,18 @@ run_simulation_button = tkinter.Button(menu_frame, text="Run simulation", foregr
 run_simulation_button.pack(side="left", fill="x", expand=True)
 tkinter.Label(menu_frame, text="at", foreground="blue").pack(side="left")
 simulation_rate = tkinter.Entry(menu_frame, justify="right")
-simulation_rate.insert("end", "1")
+simulation_rate.insert(0, "1")
 simulation_rate.pack(side="left")
 tkinter.Label(menu_frame, text="sim seconds/real second", foreground="blue").pack(side="left")
 
 run_frames_button = tkinter.Button(menu_frame, text="Simulate", foreground="red", command=simulate_x_frames)
 run_frames_button.pack(side="left", fill="x", expand=True)
 num_of_frames_entry = tkinter.Entry(menu_frame, justify="right")
-num_of_frames_entry.insert("end", "1")
+num_of_frames_entry.insert(0, "1")
 num_of_frames_entry.pack(side="left")
 tkinter.Label(menu_frame, text="frames at", foreground="red").pack(side="left")
 delta_time_entry = tkinter.Entry(menu_frame, justify="right")
-delta_time_entry.insert("end", "1")
+delta_time_entry.insert(0, "1")
 delta_time_entry.pack(side="left")
 tkinter.Label(menu_frame, text="seconds per frame", foreground="red").pack(side="left")
 
