@@ -314,14 +314,20 @@ def simulate_x_frames():
 # def edit_objects(): TODO: implement
 
 def settings_tab_handler():
-    global settings_toggle, settings_frame, centre_list
+    global settings_toggle, settings_frame, centre_list, centre_option, scale_option, grids_bool, label_bool, axes_bool
     if settings_toggle:
         settings_toggle = False
         settings_frame.pack_forget()
     else:
         settings_toggle = True
         settings_frame.pack(side="right", fill="both")
+
         centre_list = ["geometrical", "origin", "centre of mass"] + list(global_state)
+        centre_option.set(centre_reference)
+        scale_option.set(scale_mode)
+        grids_bool.set(draw_grids)
+        label_bool.set(label_grids)
+        axes_bool.set(draw_axes)
 
     print("settings_toggle", settings_toggle)
 
