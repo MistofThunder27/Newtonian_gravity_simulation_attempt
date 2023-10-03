@@ -4,7 +4,7 @@ import time
 
 # Reference values
 G = 6.67408e-11
-max_object_num = 10
+max_object_num = 10  # TODO: use
 # Default settings
 history_record_length = 100
 centre_reference = "geometrical"
@@ -177,10 +177,10 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
     if scale_mode == "absolute":
         scale = 1
     elif scale_mode == "stable":
+        # The 0.5* is because there should be the furthest distance on both sides
         scale = 10 ** math.ceil(math.log10(0.5 * min(win_width / furthest_x, win_height / furthest_y)))
     else:  # scale_mode == "fit to zoom"
-        # the 0.49* comes from 0.5 as there should be the furthest distance on both sides. Then it was decreased by a
-        # bit to keep some distance to the display borders
+        # the 0.49* comes from 0.5, but it was decreased by a bit to keep some distance to the display borders
         scale = 0.49 * min(win_width / furthest_x, win_height / furthest_y)
 
     scale *= scale_multiplier  # to adjust the scale
@@ -196,7 +196,7 @@ def update_display(begrudgingly_necessary_for_resizing_update=None):
 
     if draw_grids:
         # distance across display is nuber of pixels across / scale
-        # the 8 is number of approx. gridlines
+        # the 7 is a modifier decided by trial and error
         log_distance_between_grids = math.log10(max(win_height, win_width) / (7 * scale))
         print("log distance_between_grids", log_distance_between_grids)
         # round to nearest 1, 2 or 5 * 10**n
@@ -311,23 +311,17 @@ def simulate_x_frames():
             update_display()
 
 
-# def edit_objects():
+# def edit_objects(): TODO: implement
 
 def settings_tab_handler():
-    global settings_toggle, settings_frame, centre_list, centre_option, scale_option, grids_bool, label_bool, axes_bool
+    global settings_toggle, settings_frame, centre_list
     if settings_toggle:
         settings_toggle = False
         settings_frame.pack_forget()
     else:
         settings_toggle = True
         settings_frame.pack(side="right", fill="both")
-
         centre_list = ["geometrical", "origin", "centre of mass"] + list(global_state)
-        centre_option.set(centre_reference)
-        scale_option.set(scale_mode)
-        grids_bool.set(draw_grids)
-        label_bool.set(label_grids)
-        axes_bool.set(draw_axes)
 
     print("settings_toggle", settings_toggle)
 
@@ -435,8 +429,6 @@ axes_checkbox.pack(anchor="w")
 
 def apply_settings():
     global centre_reference, scale_mode, scale_multiplier, history_record_length, draw_grids, label_grids, draw_axes
-    global centre_option, scale_multiplier_box, scale_option, path_length_box, grids_bool, label_bool, axes_bool
-
     centre_reference = centre_option.get()
     try:
         scale_multiplier = float(scale_multiplier_box.get())
