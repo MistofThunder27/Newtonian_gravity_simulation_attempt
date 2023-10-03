@@ -107,7 +107,7 @@ def calculate_next_frame(delta_time):
 
 def update_display(begrudgingly_necessary_for_resizing_update=None):
     print("UPDATE DISPLAY ---------------------------------------------------")
-    global main_display, centre_reference
+    global main_display
     main_display.update()
     win_height = main_display.winfo_height()
     win_width = main_display.winfo_width()
@@ -299,7 +299,6 @@ def run_simulation():
 
 
 def simulate_x_frames():
-    global num_of_frames_entry, delta_time_entry
     try:
         num_of_frames = int(num_of_frames_entry.get())
         delta_time = float(delta_time_entry.get())
@@ -314,17 +313,22 @@ def simulate_x_frames():
 # def edit_objects(): TODO: implement
 
 def settings_tab_handler():
-    global settings_toggle, settings_frame, centre_list, centre_option, scale_option, grids_bool, label_bool, axes_bool
+    global settings_toggle, settings_frame, centre_list, centre_option, scale_multiplier_box, scale_option,\
+        path_length_box, grids_bool, label_bool, axes_bool
     if settings_toggle:
         settings_toggle = False
         settings_frame.pack_forget()
     else:
         settings_toggle = True
         settings_frame.pack(side="right", fill="both")
-
+        # set the option to the correct values
         centre_list = ["geometrical", "origin", "centre of mass"] + list(global_state)
         centre_option.set(centre_reference)
+        scale_multiplier_box.delete(0, "end")
+        scale_multiplier_box.insert(0, str(scale_multiplier))
         scale_option.set(scale_mode)
+        path_length_box.delete(0, "end")
+        path_length_box.insert(0, str(history_record_length))
         grids_bool.set(draw_grids)
         label_bool.set(label_grids)
         axes_bool.set(draw_axes)
@@ -397,7 +401,7 @@ frame2 = tkinter.Frame(settings_frame)
 frame2.pack(anchor="w")
 tkinter.Label(frame2, text="Scale mode").pack(side="left")
 scale_multiplier_box = tkinter.Entry(frame2)
-scale_multiplier_box.insert("end", str(scale_multiplier))
+scale_multiplier_box.insert(0, str(scale_multiplier))
 scale_multiplier_box.pack(side="left")
 tkinter.Label(frame2, text="x").pack(side="left")
 scale_list = ["fit to zoom", "stable", "absolute"]
@@ -410,7 +414,7 @@ frame3 = tkinter.Frame(settings_frame)
 frame3.pack(anchor="w")
 tkinter.Label(frame3, text="Path length").pack(side="left")
 path_length_box = tkinter.Entry(frame3)
-path_length_box.insert("end", str(history_record_length))
+path_length_box.insert(0, str(history_record_length))
 path_length_box.pack(side="left")
 
 # grids and axes
@@ -434,7 +438,8 @@ axes_checkbox.pack(anchor="w")
 
 
 def apply_settings():
-    global centre_reference, scale_mode, scale_multiplier, history_record_length, draw_grids, label_grids, draw_axes
+    global centre_reference, scale_multiplier, scale_mode, history_record_length, draw_grids, label_grids, draw_axes
+
     centre_reference = centre_option.get()
     try:
         scale_multiplier = float(scale_multiplier_box.get())
