@@ -22,22 +22,22 @@ global_state = {}
 location_history = {}
 
 # Test cases
-test_case_1 = {  # Solar system (recommended delta_time 10000)
+test_case_1 = {  # Solar system
     "Sun": [1.989e30, [0, 0, 0, 0], "yellow", 3000000000],
     "Mercury": [3.301e23, [5.8e10, 0, 0, 47000], "brown", 200000000],
     "Venus": [4.867e24, [1.08e11, 0, 0, 35000], "orange", 200000000],
     "Earth": [5.9722e24, [1.5037e11, 0, 0, 29780], "blue", 200000000],
     "Moon": [7.34767e22, [1.507544e11, 0, 0, 30802], "grey", 100000000]
 }
-test_case_2 = {  # parallel movement (recommended delta_time 5)
+test_case_2 = {  # parallel movement
     "Obj1": [1e10, [10, 0, 0, 0.125], "red", 1],
     "Obj2": [1e10, [-10, 0, 0, 0.125], "blue", 1]
 }
-test_case_3 = {  # double orbit (recommended delta_time 5)
+test_case_3 = {  # double orbit
     "Obj1": [1e10, [20, 0, 0, -0.08], "red", 1],
     "Obj2": [1e10, [-20, 0, 0, 0.08], "blue", 1]
 }
-test_case_4 = {  # three objects (recommended delta_time 5)
+test_case_4 = {  # three objects
     "Obj1": [1e10, [20, 0, 0, -0.08], "red", 1],
     "Obj2": [1e10, [-20, 0, 0, 0.08], "blue", 1],
     "Obj3": [1e10, [0, -20, 0.01, 0], "yellow", 1]
